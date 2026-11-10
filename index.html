@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HomeoCare Pro</title>
+<style>
+:root{--bg:#f4f7f6;--card:#fff;--tx:#18322c;--mu:#62766f;--pr:#0f766e;--on:#fff;--bd:#d9e4e0;--rd:#b42318;--rb:#fdecea;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a18;--card:#172623;--tx:#e6f0ed;--mu:#9bb0aa;--pr:#2dd4bf;--on:#06201c;--bd:#27403b;--rd:#ffb4a9;--rb:#3b1512}}
+:root[data-theme="dark"]{--bg:#0f1a18;--card:#172623;--tx:#e6f0ed;--mu:#9bb0aa;--pr:#2dd4bf;--on:#06201c;--bd:#27403b;--rd:#ffb4a9;--rb:#3b1512}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,"Noto Sans Bengali","Segoe UI",sans-serif;padding-bottom:76px}
+header{background:var(--pr);color:var(--on);padding:14px 16px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+header b{font-size:18px}header small{display:block;opacity:.85}
+main{padding:12px;max-width:720px;margin:auto}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:10px}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.st{font-size:26px;font-weight:700;color:var(--pr)}.mu{color:var(--mu);font-size:13px}
+label{display:block;font-size:13px;color:var(--mu);margin:8px 0 2px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+textarea{min-height:64px}
+button{background:var(--pr);color:var(--on);border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:600;margin:4px 4px 0 0}
+button.s{background:transparent;color:var(--pr);border:1px solid var(--pr)}button.d{background:var(--rb);color:var(--rd)}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--bd);display:flex;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav div{flex:1;text-align:center;padding:10px 2px;font-size:12px;color:var(--mu)}nav div.on{color:var(--pr);font-weight:700}
+.flag{background:var(--rb);color:var(--rd);border:1px solid var(--rd);border-radius:12px;padding:10px;margin-bottom:10px;font-weight:600}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+h3{margin:12px 0 6px;font-size:16px}
+#pr{display:none}
+@media print{body>*:not(#pr){display:none!important}#pr{display:block;color:#000;background:#fff;padding:16px}}
+</style></head><body>
+<header><b id="ht">HomeoCare Pro</b><small id="hs"></small></header>
+<main id="m"></main><nav id="nv"></nav><div id="pr"></div>
+<script>
+const T={bn:{home:"হোম",pts:"রোগী",apt:"অ্যাপয়েন্টমেন্ট",acc:"হিসাব",set:"সেটিংস",add:"নতুন রোগী",save:"সংরক্ষণ",search:"নাম বা ফোন দিয়ে খুঁজুন",tp:"মোট রোগী",ta:"আজকের অ্যাপয়েন্টমেন্ট",fu:"ফলো-আপ বাকি",tc:"আজকের কালেকশন",ob:"মোট বকেয়া",mc:"এই মাসের কালেকশন"},
+en:{home:"Home",pts:"Patients",apt:"Appointments",acc:"Accounts",set:"Settings",add:"New patient",save:"Save",search:"Search by name or phone",tp:"Total patients",ta:"Today appointments",fu:"Pending follow-ups",tc:"Today collection",ob:"Total outstanding",mc:"This month collection"}};
+const FL=["chest pain","breathing","unconscious","seizure","convulsion","severe bleeding","bleeding heavily","stroke","paralysis","বুকে ব্যথা","শ্বাসকষ্ট","শ্বাস কষ্ট","অজ্ঞান","খিঁচুনি","রক্তক্ষরণ","প্যারালাইসিস"];
+let db=ld(),view="home",pid=null,edit=false,q="",lang=db.s.lang||"bn",unlocked=!db.s.pin;
+function ld(){try{const r=localStorage.getItem("hcp");if(r)return JSON.parse(r)}catch(e){}return{p:[],a:[],s:{lang:"bn"}}}
+function sv(){try{localStorage.setItem("hcp",JSON.stringify(db))}catch(e){}}
+const t=k=>(T[lang][k]||k),$=s=>document.querySelector(s),id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const tz=new Date().getTimezoneOffset()*60000,td=()=>new Date(Date.now()-tz).toISOString().slice(0,10);
+const e=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const v=i=>{const x=document.getElementById(i);return x?x.value.trim():""};
+const F=(i,l,val,tp)=>`<label>${l}</label><input id="${i}" type="${tp||"text"}" value="${e(val)}">`;
+const A=(i,l,val)=>`<label>${l}</label><textarea id="${i}">${e(val)}</textarea>`;
+const P=i=>db.p.find(x=>x.id===i);
+const bal=p=>(p.pay||[]).reduce((s,x)=>s+(x.type==="charge"?x.amt:-x.amt),0);
+const flagged=p=>{const s=JSON.stringify([p.complaints,p.mental,p.physical,p.notes,...(p.follow||[]).map(f=>f.note)]).toLowerCase();return FL.filter(k=>s.includes(k))};
+function go(x,i){view=x;pid=i||null;edit=false;render()}
+function render(){
+ if(!unlocked){$("#m").innerHTML=`<div class="card"><h3>PIN</h3><input id="pin" type="password" inputmode="numeric" placeholder="PIN"><button onclick="if(v('pin')===db.s.pin){unlocked=true;render()}else alert('ভুল PIN / Wrong PIN')">OK</button></div>`;$("#nv").innerHTML="";return}
+ $("#ht").textContent=db.s.clinic||"HomeoCare Pro";$("#hs").textContent=db.s.doctor||"";
+ const tabs=[["home","⌂"],["pts","☺"],["apt","▦"],["acc","৳"],["set","⚙"]];
+ $("#nv").innerHTML=tabs.map(([k,i])=>`<div class="${view===k?"on":""}" onclick="go('${k}')"><div style="font-size:20px;padding:0">${i}</div>${t(k)}</div>`).join("");
+ $("#m").innerHTML=({home:H,pts:view==="pts"&&pid?D:L,apt:AP,acc:AC,set:S})[view]();window.scrollTo(0,0)}
+function H(){const d=td(),m=d.slice(0,7);let tc=0,mc=0,ob=0,fu=0;
+ db.p.forEach(p=>{(p.pay||[]).forEach(x=>{if(x.type==="paid"){if(x.date===d)tc+=x.amt;if(x.date.slice(0,7)===m)mc+=x.amt}});const b=bal(p);if(b>0)ob+=b;if((p.rx||[]).some(r=>r.follow&&r.follow<=d&&!(p.follow||[]).some(f=>f.date>=r.follow)))fu++});
+ const ta=db.a.filter(a=>a.date===d);
+ const c=(l,n)=>`<div class="card"><div class="mu">${l}</div><div class="st">${n}</div></div>`;
+ return`<div class="g">${c(t("tp"),db.p.length)}${c(t("ta"),ta.length)}${c(t("fu"),fu)}${c(t("tc"),"৳"+tc)}${c(t("mc"),"৳"+mc)}${c(t("ob"),"৳"+ob)}</div>
+ <button onclick="pid=null;go('pts');edit=true;render()">+ ${t("add")}</button><button class="s" onclick="go('apt')">${t("apt")}</button>
+ <h3>${t("ta")}</h3>${ta.map(a=>`<div class="card row"><span>${e(a.time)} — ${e(P(a.pid)?.name||"?")}</span><span class="mu">${e(a.st)}</span></div>`).join("")||'<div class="mu">—</div>'}`}
+function L(){if(edit)return PF(null);
+ const s=q.toLowerCase(),l=db.p.filter(p=>!s||(p.name+" "+(p.phone||"")+" "+p.pid).toLowerCase().includes(s));
+ return`<input placeholder="${t("search")}" value="${e(q)}" oninput="q=this.value;lst()"><button onclick="edit=true;render()">+ ${t("add")}</button><div id="lst" style="margin-top:10px">${LI(l)}</div>`}
+function LI(l){return l.map(p=>`<div class="card row" onclick="go('pts','${p.id}')"><div><b>${e(p.name)}</b><div class="mu">${e(p.pid)} · ${e(p.age||"")} · ${e(p.phone||"")}</div></div>${bal(p)>0?`<span style="color:var(--rd)">৳${bal(p)}</span>`:""}</div>`).join("")||'<div class="mu">—</div>'}
+function lst(){const s=q.toLowerCase();$("#lst").innerHTML=LI(db.p.filter(p=>!s||(p.name+" "+(p.phone||"")+" "+p.pid).toLowerCase().includes(s)))}
+const CF=[["complaints","মূল সমস্যা / Chief complaints"],["history","পূর্ব ইতিহাস / History (past, family, allergy)"],["mental","মানসিক লক্ষণ / Mental generals"],["physical","শারীরিক সাধারণ লক্ষণ / Physical generals"],["thermal","তাপীয় অবস্থা / Thermal"],["thirst","তৃষ্ণা, ক্ষুধা / Thirst, appetite"],["cravings","পছন্দ-অপছন্দ / Cravings, aversions"],["sleep","ঘুম ও স্বপ্ন / Sleep, dreams"],["modal","বৃদ্ধি-হ্রাস / Modalities"],["miasm","মায়াজম / Miasm, constitution"],["notes","অন্যান্য নোট / Notes"]];
+function PF(p){p=p||{};return`<div class="card"><h3>${p.id?"✎":t("add")}</h3>${F("n","নাম / Name *",p.name)}<div class="g"><div>${F("ag","বয়স / Age",p.age)}</div><div><label>লিঙ্গ / Gender</label><select id="gn">${["","পুরুষ","মহিলা","অন্য"].map(o=>`<option ${p.gender===o?"selected":""}>${o}</option>`).join("")}</select></div></div>${F("ph","ফোন / Mobile",p.phone,"tel")}${F("ad","ঠিকানা / Address",p.addr)}${CF.map(([k,l])=>A("c_"+k,l,p[k])).join("")}<button onclick="sp('${p.id||""}')">${t("save")}</button><button class="s" onclick="edit=false;render()">✕</button></div>`}
+function sp(i){if(!v("n"))return alert("নাম দিন / Name required");let p=i?P(i):{id:id(),pid:"P"+String(db.p.length+1).padStart(4,"0"),reg:td(),rx:[],follow:[],pay:[]};
+ Object.assign(p,{name:v("n"),age:v("ag"),gender:v("gn"),phone:v("ph"),addr:v("ad")});CF.forEach(([k])=>p[k]=v("c_"+k));if(!i)db.p.push(p);sv();pid=p.id;view="pts";edit=false;render()}
+function D(){const p=P(pid);if(!p)return L();if(edit)return PF(p);const f=flagged(p);
+ return`<button class="s" onclick="go('pts')">← ${t("pts")}</button>${f.length?`<div class="flag">⚠ জরুরি লক্ষণ সনাক্ত: ${e(f.join(", "))} — অবিলম্বে জরুরি চিকিৎসা মূল্যায়নের পরামর্শ দিন। / Possible emergency signs: advise urgent medical evaluation. Do not delay emergency care.</div>`:""}
+ <div class="card"><b style="font-size:18px">${e(p.name)}</b><div class="mu">${e(p.pid)} · ${e(p.gender)} · ${e(p.age)} · ${e(p.phone)}<br>${e(p.addr)}</div><button class="s" onclick="edit=true;render()">✎</button><button class="d" onclick="dp()">🗑</button></div>
+ <div class="card">${CF.filter(([k])=>p[k]).map(([k,l])=>`<div class="mu">${l}</div><div>${e(p[k])}</div>`).join("")||'<span class="mu">—</span>'}</div>
+ <h3>℞ প্রেসক্রিপশন / Prescriptions</h3>${(p.rx||[]).slice().reverse().map(r=>`<div class="card"><b>${e(r.date)}</b> — ${e(r.remedy)} ${e(r.pot)}<div class="mu">${e(r.dose)} · ${e(r.dur)} · ${e(r.ins)}${r.follow?" · ফলো-আপ: "+e(r.follow):""}</div><button class="s" onclick="pp('${r.id}')">🖨 Print</button></div>`).join("")}
+ <div class="card"><div class="g"><div>${F("rr","ঔষধ / Remedy")}</div><div>${F("rp","পটেন্সি / Potency")}</div></div>${F("rd","মাত্রা ও নিয়ম / Dosage, frequency")}<div class="g"><div>${F("ru","সময়কাল / Duration")}</div><div>${F("rf","পরবর্তী ফলো-আপ","","date")}</div></div>${F("ri","নির্দেশনা / Instructions")}<button onclick="ar()">+ ℞ (ডাক্তারের অনুমোদিত / doctor-approved)</button></div>
+ <h3>ফলো-আপ / Follow-ups</h3>${(p.follow||[]).slice().reverse().map(x=>`<div class="card"><b>${e(x.date)}</b> · ${e(x.st)}<div>${e(x.note)}</div></div>`).join("")}
+ <div class="card">${F("fd","তারিখ / Date",td(),"date")}<label>অবস্থা / Status</label><select id="fs"><option>উন্নতি / Improved</option><option>অপরিবর্তিত / Same</option><option>বৃদ্ধি / Aggravated</option><option>নতুন লক্ষণ / New symptoms</option></select>${A("fn","নোট (বর্তমান অভিযোগ, নতুন/চলে যাওয়া লক্ষণ) / Notes")}<button onclick="af()">+ ${t("save")}</button></div>
+ <h3>৳ হিসাব / Payments (বকেয়া: ৳${bal(p)})</h3>${(p.pay||[]).slice().reverse().map(x=>`<div class="card row"><span>${e(x.date)} · ${x.type==="charge"?"চার্জ":"জমা"} · ${e(x.method||"")} <span class="mu">${e(x.note)} #${e(x.tid)}</span></span><b>৳${x.amt}</b></div>`).join("")}
+ <div class="card"><div class="g"><div><label>ধরন / Type</label><select id="yt"><option value="charge">চার্জ / Charge (ফি, ঔষধ)</option><option value="paid">জমা / Payment received</option></select></div><div>${F("ya","টাকা / Amount","","number")}</div></div><label>পদ্ধতি / Method</label><select id="ym"><option>Cash</option><option>bKash</option><option>Nagad</option><option>Rocket</option><option>Bank</option></select>${F("yn","নোট (ফি/হাদিয়া/ছাড়) / Note")}<button onclick="ay()">+ ${t("save")}</button></div>`}
+function dp(){if(confirm("রোগী মুছবেন? / Delete patient?")){db.p=db.p.filter(x=>x.id!==pid);db.a=db.a.filter(a=>a.pid!==pid);sv();go("pts")}}
+function ar(){const p=P(pid);if(!v("rr"))return alert("ঔষধের নাম দিন");p.rx.push({id:id(),date:td(),remedy:v("rr"),pot:v("rp"),dose:v("rd"),dur:v("ru"),follow:v("rf"),ins:v("ri")});sv();render()}
+function af(){const p=P(pid);if(!v("fn"))return;p.follow.push({date:v("fd"),st:v("fs"),note:v("fn")});sv();render()}
+function ay(){const p=P(pid),a=parseFloat(v("ya"));if(!(a>0))return alert("সঠিক টাকা দিন");p.pay.push({id:id(),tid:"T"+Date.now().toString(36).toUpperCase(),date:td(),type:v("yt"),amt:a,method:v("ym"),note:v("yn")});sv();render()}
+function pp(rid){const p=P(pid),r=p.rx.find(x=>x.id===rid),s=db.s;
+ $("#pr").innerHTML=`<div style="text-align:center;border-bottom:2px solid #000;padding-bottom:8px"><h2 style="margin:0">${e(s.clinic||"Clinic")}</h2>${e(s.doctor||"")} ${e(s.qual||"")}<br>${e(s.addr||"")} ${e(s.phone||"")}</div><p>রোগী: <b>${e(p.name)}</b> (${e(p.pid)}) · বয়স: ${e(p.age)} · ${e(p.gender)} · তারিখ: ${e(r.date)}</p><p>সমস্যা: ${e(p.complaints)}</p><h1 style="margin:8px 0">℞</h1><p style="font-size:20px"><b>${e(r.remedy)}</b> ${e(r.pot)}</p><p>${e(r.dose)}<br>সময়কাল: ${e(r.dur)}<br>${e(r.ins)}</p><p>পরবর্তী ফলো-আপ: ${e(r.follow||"—")}</p><br><br><div style="text-align:right">________________<br>ডাক্তারের স্বাক্ষর / Signature</div><p style="font-size:11px;margin-top:30px">জরুরি অবস্থায় অবিলম্বে নিকটস্থ হাসপাতালে যোগাযোগ করুন। In an emergency seek urgent medical care.</p>`;(window.AndroidPrint?AndroidPrint.print():window.print())}
+function AP(){const l=db.a.slice().sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+ return`<div class="card"><label>রোগী / Patient</label><select id="ap">${db.p.map(p=>`<option value="${p.id}">${e(p.name)}</option>`).join("")}</select><div class="g"><div>${F("ad2","তারিখ",td(),"date")}</div><div>${F("at","সময়","10:00","time")}</div></div>${F("an","নোট")}<button onclick="aa()">+ ${t("save")}</button></div>`+
+ l.map(a=>`<div class="card"><div class="row"><b>${e(a.date)} ${e(a.time)}</b><span class="mu">${e(a.st)}</span></div>${e(P(a.pid)?.name||"?")} <span class="mu">${e(a.note)}</span><br>${["Confirmed","Done","Missed","Cancelled"].map(s=>`<button class="s" onclick="as('${a.id}','${s}')">${s}</button>`).join("")}<button class="d" onclick="db.a=db.a.filter(x=>x.id!=='${a.id}');sv();render()">🗑</button></div>`).join("")}
+function aa(){if(!v("ap"))return alert("আগে রোগী যোগ করুন");db.a.push({id:id(),pid:v("ap"),date:v("ad2"),time:v("at"),note:v("an"),st:"Scheduled"});sv();render()}
+function as(i,s){db.a.find(x=>x.id===i).st=s;sv();render()}
+function AC(){let d=td(),m=d.slice(0,7),y=d.slice(0,4),c={d:0,m:0,y:0},meth={};db.p.forEach(p=>(p.pay||[]).forEach(x=>{if(x.type!=="paid")return;if(x.date===d)c.d+=x.amt;if(x.date.slice(0,7)===m)c.m+=x.amt;if(x.date.slice(0,4)===y)c.y+=x.amt;meth[x.method]=(meth[x.method]||0)+x.amt}));
+ const du=db.p.filter(p=>bal(p)>0);return`<div class="card">দৈনিক: <b>৳${c.d}</b><br>মাসিক: <b>৳${c.m}</b><br>বাৎসরিক: <b>৳${c.y}</b></div><h3>পদ্ধতি অনুযায়ী (মোট)</h3><div class="card">${Object.entries(meth).map(([k,x])=>`${k}: ৳${x}`).join("<br>")||"—"}</div><h3>বকেয়া তালিকা</h3>${du.map(p=>`<div class="card row" onclick="go('pts','${p.id}')"><span>${e(p.name)}</span><b style="color:var(--rd)">৳${bal(p)}</b></div>`).join("")||"—"}`}
+function S(){const s=db.s;return`<div class="card"><h3>ক্লিনিক / Clinic</h3>${F("s1","ক্লিনিকের নাম",s.clinic)}${F("s2","ডাক্তারের নাম",s.doctor)}${F("s3","যোগ্যতা / Qualification",s.qual)}${F("s4","ঠিকানা",s.addr)}${F("s5","ফোন",s.phone)}${F("s6","PIN (ঐচ্ছিক / optional)",s.pin||"","password")}<label>ভাষা / Language</label><select id="s7"><option value="bn" ${lang==="bn"?"selected":""}>বাংলা</option><option value="en" ${lang==="en"?"selected":""}>English</option></select><button onclick="ss()">${t("save")}</button></div>
+ <div class="card"><h3>ব্যাকআপ / Backup</h3><div class="mu">ডেটা শুধু এই ফোনের ব্রাউজারে থাকে। নিয়মিত ব্যাকআপ নিন: নিচের লেখা কপি করে Notes/WhatsApp-এ সংরক্ষণ করুন। ফোন বদলালে সেটি পেস্ট করে রিস্টোর করুন।</div><button onclick="$('#bk').value=JSON.stringify(db)">ব্যাকআপ তৈরি</button><button class="s" onclick="try{$('#bk').select();navigator.clipboard.writeText($('#bk').value)}catch(x){}">কপি</button><button class="s" onclick="rs()">রিস্টোর</button><textarea id="bk" style="min-height:120px"></textarea></div>`}
+function ss(){Object.assign(db.s,{clinic:v("s1"),doctor:v("s2"),qual:v("s3"),addr:v("s4"),phone:v("s5"),pin:v("s6"),lang:v("s7")});lang=db.s.lang;sv();render()}
+function rs(){try{const o=JSON.parse(v("bk"));if(!o.p||!o.a||!o.s)throw 0;if(confirm("বর্তমান ডেটা প্রতিস্থাপিত হবে। নিশ্চিত?")){db=o;sv();lang=db.s.lang||"bn";render()}}catch(x){alert("ব্যাকআপ লেখা সঠিক নয় / Invalid backup")}}
+render();
+</script></body></html>
